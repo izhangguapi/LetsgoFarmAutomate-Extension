@@ -62,13 +62,15 @@ export default defineContentScript({
     setTimeout(async () => {
       // 创建script元素
       const script = document.createElement("script");
-
       // 使用browser.runtime.getURL获取脚本路径
       script.src = browser.runtime.getURL("/assets/main.js");
-
       // 将脚本添加到页面
       document.body.appendChild(script);
-      console.log("主要脚本已成功注入到页面!");
+      console.log("主要脚本已成功注入");
+      // 注入工具脚本
+      script.src = browser.runtime.getURL("/assets/tools.js");
+      document.body.appendChild(script);
+      console.log("工具脚本已成功注入");
     }, autoInjection.value * 1000);
 
     // 监听来自popup的消息
@@ -98,7 +100,6 @@ export default defineContentScript({
             autoInjection: autoInjection.value,
             loopSeconds: configStorage.loopSeconds.value,
             isRunning: configStorage.isRunning.value,
-            isPaused: configStorage.isPaused.value,
           },
         });
         return true;
@@ -112,10 +113,10 @@ export default defineContentScript({
 
           // 调用startCountdown方法，传递秒数和是否循环参数
           appRef.value.startCountdown(message.seconds, message.repeat === true);
-          
+
           // 点击开始按钮时注入runDrone脚本
           // injectRunDroneScript();
-          
+
           sendResponse({ status: "success" });
         } else {
           console.error("无法获取Vue应用实例或startCountdown方法");
@@ -137,18 +138,6 @@ export default defineContentScript({
         return true;
       }
 
-      // 处理暂停倒计时消息
-      if (message.action === "pauseCountdown") {
-        if (appRef.value && appRef.value.pauseCountdown) {
-          const result = appRef.value.pauseCountdown();
-          sendResponse(result);
-        } else {
-          console.error("无法获取Vue应用实例或pauseCountdown方法");
-          sendResponse({ status: "error", message: "无法获取App组件实例" });
-        }
-        return true;
-      }
-
       // 处理检查倒计时状态的消息
       if (message.action === "checkCountdownStatus") {
         if (appRef.value && appRef.value.checkStatus) {
@@ -156,7 +145,6 @@ export default defineContentScript({
           sendResponse({
             status: "success",
             isRunning: status.isRunning,
-            isPaused: status.isPaused,
           });
         } else {
           console.error("无法获取Vue应用实例或checkStatus方法");
@@ -164,13 +152,25 @@ export default defineContentScript({
             status: "error",
             message: "无法获取App组件实例",
             isRunning: false,
-            isPaused: false,
           });
         }
         return true;
       }
+
+      // 处理定时执行任务消息
+      if (message.action === "executeScheduledAction") {
+        console.log("收到定时执行任务消息:", message.alarmName);
+        if (appRef.value && appRef.value.handleScheduledAction) {
+          appRef.value.handleScheduledAction(message.alarmName);
+          sendResponse({ status: "success" });
+        } else {
+          console.error("无法获取Vue应用实例或handleScheduledAction方法");
+          sendResponse({ status: "error", message: "无法获取App组件实例" });
+        }
+        return true;
+      }
     });
-    
+
     // 监听倒计时结束事件
     window.addEventListener("message", (event) => {
       if (event.data && event.data.type === "countdownEnded") {

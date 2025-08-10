@@ -1,13 +1,14 @@
 const btnOffset = {
-  blank: { x: 0.075, y: 0.973 }, // 空白位置
+  blank: { x: 0.1, y: 0.999 }, // 空白位置
   jumpBtn: { x: 0.741, y: 0.822 }, // 跳跃按钮
   resetBtn: { x: 0.959, y: 0.907 }, // 重置按钮
   leftBtn: { x: 0.76, y: 0.65 }, // 无人机、放大镜发射
   rightBtn: { x: 0.86, y: 0.55 }, // 收获水族箱、神农许愿
   closeBtn: { x: 0.72, y: 0.27 }, // 窗口关闭按钮
   // refuseBtn: { x: 0.36, y: 0.65 }, // 窗口左侧按钮
+  skipBtn: { x: 0.625, y: 0.733 }, // 鱼塘跳过按钮
   acceptBtn: { x: 0.63, y: 0.65 }, // 窗口右侧的按钮
-  okBtn: { x: 0.5, y: 0.65 }, // 窗口确定按钮
+  okBtn: { x: 0.5, y: 0.65 }, // 窗口中间确定按钮
   bigBtn: { x: 0.875, y: 0.8 }, // 右下角大按钮
   // 收获鱼缸，滑动镜头的偏移量
   aquarium: {
@@ -313,198 +314,188 @@ async function fakeInput(text, wait = 1000) {
   // }, 1000);
 }
 
-/**
- * 初始化
- * @param {number} time 耗时（多少毫秒后执行）
- */
-function init() {
-  // 音量设为0，修改网络延迟和操作按钮的位置
-  localStorage.setItem("gameVoice", "0");
-  localStorage.setItem("xianyou-drag-delay", '{"x":10,"y":10}');
-  localStorage.setItem("xianyou-pc-drag-menu", '{"x":10,"y":1}');
-  // 关闭增强，画质调最低
-  // 检查并应用画质设置
-  if (
-    localStorage.getItem("gameFsr") !== "false" ||
-    localStorage.getItem("gameSharpness") !== "1"
-  ) {
-    localStorage.setItem("gameFsr", "false");
-    localStorage.setItem("gameSharpness", "1");
-    return location.reload(); // 重新加载页面并终止后续代码执行
-  }
-  // 移除干扰元素（左上角的创建快捷方式、顶部快捷键提示、跟随鼠标的提示）
-  [".dw", ".g-pc-k", ".g-pc-m-tip"].forEach((selector) =>
-    document.querySelector(selector)?.remove()
-  );
-  // 关闭辅助屏
-  document.querySelector(".g-pc-s-v-close")?.click();
-  // console.log("初始化完成");
-}
-
-/**
- * 关闭屏幕上的弹窗，耗时2450毫秒
- */
-async function clearScreen() {
-  // 跳跃一下，解除省电模式
-  await Mouse.click(btnOffset.jumpBtn);
-  // 释放wasd键
-  for (const element of ["W", "A", "S", "D"]) {
-    await Keyboard.press(element);
-  }
-  for (let i = 0; i < 2; i++) {
-    // 拒绝好友拉倒身边
-    await Mouse.click(btnOffset.closeBtn);
-    // 网络波动重新连接
-    await Mouse.click(btnOffset.okBtn);
-    // 点击空白地方跳过鱼卡
-    await Mouse.click(btnOffset.blank);
-  }
-  // 重置位置
-  await Mouse.click(btnOffset.resetBtn);
-}
-
-/**
- * 运行一次无人机，耗时4000毫秒
- */
-async function runDrone() {
-  await clearScreen();
-  // 走到无人机
-  await Keyboard.down("A", 300);
-  await Mouse.click(btnOffset.jumpBtn, 700);
-  Keyboard.up("A");
-  // 执行无人机
-  await Mouse.click(btnOffset.leftBtn);
-}
-
-/**
- * 寻找发射器
- */
-async function findTransmitter(selectLeft = true) {
-  Keyboard.down("D");
-  await Mouse.click(btnOffset.jumpBtn);
-  await Keyboard.up("D", 1000);
-
-  if (selectLeft) {
-    // 点击放大镜
-    await Mouse.click(btnOffset.leftBtn, 1000);
-  } else {
-    // 点击农务车
-    await Mouse.click(btnOffset.rightBtn, 1000);
-  }
-}
-
-/**
- * 自动收水族箱，耗时14000毫秒
- */
-async function aquarium() {
-  await clearScreen();
-  await findTransmitter();
-  // 移动视角
-  await Mouse.drag("top", btnOffset.aquarium.top);
-  await Mouse.drag("left", btnOffset.aquarium.left);
-  await Mouse.click(btnOffset.bigBtn, 3200);
-  await Mouse.click(btnOffset.rightBtn, 3000);
-  await Mouse.click(btnOffset.blank);
-}
-
-/**
- * 自动许愿，耗时14000毫秒
- * @param {boolean} select
- */
-async function pray(select = "glod") {
-  await clearScreen();
-  Keyboard.down("S");
-  await Mouse.click(btnOffset.jumpBtn, 1800);
-  Keyboard.up("S");
-  await Mouse.click(btnOffset.rightBtn, 500);
-  if (select == "glod") {
-    await Mouse.click(btnOffset.pray.left);
-  } else {
-    await Mouse.click(btnOffset.pray.right);
-  }
-  await Mouse.click(btnOffset.pray.btn, 8000);
-  await Mouse.click(btnOffset.blank);
-}
-
-/**
- * 自动泡温泉，自家喝茶耗时29150毫秒，好友耗时57900
- * @param {boolean} tea 是否喝茶
- * @param {string} uid 好友的uid
- */
-async function hotspring(tea = false, uid = null) {
-  await clearScreen();
-  if (uid) {
-    await Mouse.click(btnOffset.hotspring.socializing, 2000);
-    await Mouse.click(btnOffset.hotspring.inputbox, 2000);
-    await fakeInput(uid);
-    await Mouse.click(btnOffset.hotspring.oneself, 3000);
-    await Mouse.click(btnOffset.hotspring.visit, 10000);
-  }
-  await findTransmitter();
-  // 移动视角
-  await Mouse.drag("top", btnOffset.hotspring.top);
-  await Mouse.drag("right", btnOffset.hotspring.right);
-  await Mouse.click(btnOffset.bigBtn, 4000);
-  await Mouse.click(btnOffset.bigBtn, 15000);
-  if (tea) {
-    await Mouse.click(btnOffset.leftBtn, 1000);
-    await Mouse.click(btnOffset.acceptBtn, 1000);
-  }
-  if (uid) {
-    await Mouse.click(btnOffset.hotspring.gohome, 10000);
-  } else {
-    await Mouse.click(btnOffset.resetBtn);
-  }
-}
-init();
-
-// (function () {
-// 监听来自扩展的消息
-window.addEventListener("message", async function (event) {
-  if (event.data.action) {
-    switch (event.data.action) {
-      case "runDrone":
-        console.log("收到执行runDrone的消息");
-        await runDrone();
-        break;
-      case "init":
-        init();
-        break;
-      case "aquarium":
-        await aquarium();
-        break;
-      case "pray":
-        await pray();
-        break;
-      case "hotspring":
-        await hotspring();
-        break;
-      case "clearScreen":
-        await clearScreen();
-        break;
-      case "findTransmitter":
-        await findTransmitter();
-        break;
-      default:
-        console.error("未找到对应的操作");
-        break;
+const actionHandlers = {
+  /**
+   * 初始化
+   * @param {number} time 耗时（多少毫秒后执行）
+   */
+  init: async () => {
+    // 音量设为0，修改网络延迟和操作按钮的位置
+    localStorage.setItem("gameVoice", 0);
+    localStorage.setItem("xianyou-drag-delay", '{"x":10,"y":10}');
+    localStorage.setItem("xianyou-pc-drag-menu", '{"x":10,"y":1}');
+    // 关闭增强，画质调最低
+    // 检查并应用画质设置
+    if (
+      localStorage.getItem("gameFsr") !== "false" ||
+      localStorage.getItem("gameSharpness") !== "1"
+    ) {
+      localStorage.setItem("gameFsr", false);
+      localStorage.setItem("gameSharpness", 1);
+      return location.reload(); // 重新加载页面并终止后续代码执行
     }
-  }
+    // 移除干扰元素（左上角的创建快捷方式、顶部快捷键提示、跟随鼠标的提示）
+    [".dw", ".g-pc-k", ".g-pc-m-tip"].forEach((selector) =>
+      document.querySelector(selector)?.remove()
+    );
+    // 关闭辅助屏
+    document.querySelector(".g-pc-s-v-close")?.click();
+    // console.log("初始化完成");
+  },
+  /**
+   * 关闭屏幕上的弹窗
+   */
+  clearScreen: async () => {
+    // 跳跃一下，解除省电模式
+    // await Mouse.click(btnOffset.jumpBtn);
+
+    // 网络波动重新连接
+    for (let index = 0; index < 3; index++) {
+      await Mouse.click(btnOffset.acceptBtn, 3000);
+      await Mouse.click(btnOffset.okBtn);
+    }
+    // 释放wasd键
+    for (const element of ["W", "A", "S", "D"]) {
+      // 拒绝好友拉倒身边
+      await Mouse.click(btnOffset.closeBtn);
+      // 点击空白地方关闭鱼卡
+      await Mouse.click(btnOffset.blank);
+      // 点击钓鱼的跳过按钮
+      await Mouse.click(btnOffset.skipBtn);
+      await Keyboard.press(element);
+    }
+    // 重置位置
+    await Mouse.click(btnOffset.resetBtn);
+  },
+
+  /**
+   * 寻找无人机
+   */
+  findDrone: async () => {
+    await Keyboard.down("A", 300);
+    await Mouse.click(btnOffset.jumpBtn, 700);
+    Keyboard.up("A");
+  },
+  /**
+   * 运行一次无人机
+   */
+  runDrone: async () => {
+    await actionHandlers.clearScreen();
+    // 走到无人机
+    await actionHandlers.findDrone();
+    // 执行无人机
+    await Mouse.click(btnOffset.leftBtn);
+  },
+  /**
+   * 寻找发射器
+   * @param {boolean} selectLeft 是否点击左边按钮（默认true）
+   * 如果为true，则点击左边放大镜；否则点击农务车
+   */
+  findTransmitter: async (selectLeft = true) => {
+    Keyboard.down("D");
+    await Mouse.click(btnOffset.jumpBtn, 500);
+    await Keyboard.up("D", 1000);
+
+    if (selectLeft) {
+      // 点击放大镜
+      await Mouse.click(btnOffset.leftBtn, 1000);
+    } else {
+      // 点击农务车
+      await Mouse.click(btnOffset.rightBtn, 1000);
+    }
+  },
+  /**
+   * 自动收水族箱
+   */
+  aquarium: async () => {
+    await actionHandlers.clearScreen();
+    await actionHandlers.findTransmitter();
+    // 移动视角
+    await Mouse.drag("top", btnOffset.aquarium.top);
+    await Mouse.drag("left", btnOffset.aquarium.left);
+    await Mouse.click(btnOffset.bigBtn, 3200);
+    await Mouse.click(btnOffset.rightBtn, 3000);
+    await Mouse.click(btnOffset.blank);
+    console.log("水族箱收获完成");
+    callWinForms("水族箱收获完成", "green");
+  },
+  /**
+   * 自动许愿，耗时14000毫秒
+   * @param {boolean} select
+   */
+  pray: async (select) => {
+    await actionHandlers.clearScreen();
+    Keyboard.down("S");
+    await Mouse.click(btnOffset.jumpBtn, 1800);
+    Keyboard.up("S");
+    await Mouse.click(btnOffset.rightBtn, 500);
+    if (select) {
+      await Mouse.click(btnOffset.pray.left);
+    } else {
+      await Mouse.click(btnOffset.pray.right);
+    }
+    await Mouse.click(btnOffset.pray.btn, 8000);
+    await Mouse.click(btnOffset.blank);
+    console.log("许愿完成");
+    callWinForms("许愿完成", "green");
+  },
+  /**
+   * 自动泡温泉，自家喝茶耗时29150毫秒，好友耗时57900
+   * @param {boolean} tea 是否喝茶
+   * @param {string} uid 好友的uid
+   */
+  hotspring: async (tea = true, uid = null) => {
+    await actionHandlers.clearScreen();
+    if (uid) {
+      await Mouse.click(btnOffset.hotspring.socializing, 2000);
+      await Mouse.click(btnOffset.hotspring.inputbox, 2000);
+      await fakeInput(uid);
+      await Mouse.click(btnOffset.hotspring.oneself, 3000);
+      await Mouse.click(btnOffset.hotspring.visit, 10000);
+    }
+    await Mouse.click(btnOffset.resetBtn);
+    await actionHandlers.findTransmitter();
+    // 移动视角
+    await Mouse.drag("top", btnOffset.hotspring.top);
+    await Mouse.drag("right", btnOffset.hotspring.right);
+    await Mouse.click(btnOffset.bigBtn, 4000);
+    await Mouse.click(btnOffset.bigBtn, 15000);
+    if (tea) {
+      await Mouse.click(btnOffset.leftBtn, 1000);
+      await Mouse.click(btnOffset.acceptBtn, 1000);
+    }
+    if (uid) {
+      await Mouse.click(btnOffset.hotspring.gohome, 10000);
+    } else {
+      await Mouse.click(btnOffset.resetBtn);
+    }
+    console.log("泡温泉完成");
+    callWinForms("泡温泉完成", "green");
+  },
+};
+actionHandlers.init();
+
+// ========== 队列系统 ==========
+const queue = ((tasks) => ({
+  add: (t) => (tasks.push(t), !queue.p && queue.process()),
+  p: false,
+  process: async () => {
+    queue.p = true;
+    while (tasks.length) await tasks.shift()().catch(console.error);
+    queue.p = false;
+  },
+}))([]);
+// ================================
+
+// 事件监听器
+window.addEventListener("message", ({ data: { action, params } }) => {
+  if (!action) return;
+  const handler = actionHandlers[action];
+  if (!handler) return console.error("未找到操作:", action);
+  queue.add(() => handler(...(params || [])));
 });
-// console.log("消息监听器已设置");
 
-// 定义执行函数
-// async function executeRunDrone() {
-//   try {
-//     console.log("执行 runDrone 函数...");
-//     if (typeof runDrone === "function") {
-
-//       console.log("runDrone 执行完成");
-//     } else {
-//       console.error("runDrone 函数不存在");
-//     }
-//   } catch (error) {
-//     console.error("执行 runDrone 出错:", error);
-//   }
-// }
-// })();
+// 发送消息
+// window.postMessage({ action: 'runDrone' }, '*');
+// 带参数
+// window.postMessage({ action: 'hotspring' ,params: [true, "725149317"]}, '*');

@@ -16,19 +16,21 @@ export default defineConfig({
   webExt: {
     startUrls: ["https://gamer.qq.com/v2/game/96897"],
     chromiumArgs: [
-      '--window-size=1200,800', // 设置窗口宽度为800px，高度为600px
-      '--auto-open-devtools-for-tabs'   // 自动为每个新标签页打开开发者工具
+      "--window-size=1200,800", // 设置窗口宽度为800px，高度为600px
+      "--auto-open-devtools-for-tabs", // 自动为每个新标签页打开开发者工具
     ],
   },
   manifest: {
-    name: "星宝农场自动化脚本",
+    name: "星宝农场自动化",
     version,
-    permissions: ["storage", "activeTab", "tabs", "scripting"],
+    permissions: ["storage", "activeTab", "tabs", "scripting", "alarms"],
     host_permissions: ["https://gamer.qq.com/v2/game/96897"],
-    web_accessible_resources: [{
-      resources: ["assets/*"],
-      matches: ["*://gamer.qq.com/*"]
-    }]
+    web_accessible_resources: [
+      {
+        resources: ["assets/*"],
+        matches: ["*://gamer.qq.com/*"],
+      },
+    ],
   },
   vite: () => ({
     plugins: [

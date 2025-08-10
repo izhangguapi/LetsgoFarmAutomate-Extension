@@ -17,12 +17,10 @@ import NoVip from "@/components/NotVip.vue";
 
 const activeName = ref("Vip");
 
-
-
 const configStr = localStorage.getItem("config");
 if (configStr) {
   const config = JSON.parse(configStr);
-  if (config && typeof config.vip === 'boolean') {
+  if (config && typeof config.vip === "boolean") {
     activeName.value = config.vip ? "Vip" : "NoVip";
   }
 }
@@ -31,8 +29,6 @@ const handleClick = (tab: TabsPaneContext, event: Event) => {
   // console.log(tab, event.target.name)
   console.log(activeName.value);
 };
-
-
 </script>
 
 <style>

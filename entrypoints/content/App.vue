@@ -1,33 +1,53 @@
 <template>
   <div>
-    <!-- 固定在左下角的倒计时文本 -->
+    <!-- 固定在左下角的倒计时文本和定时任务 -->
     <div class="fixed-text">
-      <el-text :type="countdown! > 10 ? 'success' : 'danger'" tag="b">
-        {{ countdown === null ? "脚本未运行" : "倒计时：" + countdown + "秒" }}
-      </el-text>
+      <el-space direction="vertical">
+        <el-text v-if="config.pray" type="primary" tag="b">
+          许愿 {{ config.prayTime }} 执行
+        </el-text>
+        <el-text v-if="config.hotspring" type="primary" tag="b">
+          温泉 {{ config.hotspringTime }} 执行
+        </el-text>
+        <el-text :type="countdown! > 10 ? 'success' : 'danger'" tag="b">
+          {{
+            countdown === null ? "脚本未运行" : "倒计时：" + countdown + "秒"
+          }}
+        </el-text>
+      </el-space>
     </div>
 
     <el-dialog
       v-model="centerDialogVisible"
-      title="脚本公告"
-      width="500"
+      title="公告"
+      width="800"
       align-center
       destroy-on-close
       :close-on-click-modal="false"
     >
       <el-row>
-        <el-text class="mx-1">
-          脚本目前只有月卡功能可使用，无月卡功能正在努力开发中...
-        </el-text>
+        <el-text class="mx-1">{{ AppInfo.Announcement }} </el-text>
+      </el-row>
+
+      <el-row>
+        <el-text class="mx-1" tag="b">{{ AppInfo.QQGroup }}</el-text>
       </el-row>
       <br />
       <el-row>
         <el-text class="mx-1" type="danger" tag="b">
-          此脚本免费且开源😊，如果您是购买的，请立即退款、差评并举报！
+          此脚本免费且开源😊如果您是从任意渠道购买的，请立即退款、差评并举报！
         </el-text>
       </el-row>
       <el-row justify="end">
         <el-text class="mx-1" type="danger" tag="b">——开发者：张瓜皮</el-text>
+      </el-row>
+
+      <el-divider />
+      <el-row justify="center">
+        <el-text size="large" tag="b" class="mx-1">自愿赞助</el-text>
+      </el-row>
+      <el-row justify="center">
+        <el-image :src="imageUrl" fit="contain" style="width: 70%" />
       </el-row>
 
       <template #footer>
@@ -42,73 +62,85 @@
 </template>
 
 <script lang="ts" setup>
-import { useStorage } from "@vueuse/core";
-
+// 获取赞助图片
+const imageUrl = browser.runtime.getURL("/assets/Collection.png");
+// 控制Dialog是否可见
 const centerDialogVisible = ref(true);
-// 倒计时变量，使用useStorage保证在content script生命周期中保持状态
-const countdown = useStorage<number | null>("countdown", null);
+// 倒计时变量，不再使用useStorage存储
+const countdown = ref<number | null>(null);
 // 保存原始倒计时秒数，用于循环倒计时
-const initialSeconds = useStorage<number | null>("initialSeconds", null);
+const initialSeconds = ref<number | null>(null);
 // 是否循环倒计时
-const isRepeating = useStorage<boolean>("isRepeating", false);
-// 是否暂停
-const isPaused = useStorage<boolean>("isPaused", false);
-// 结束时间戳，用于在刷新页面后恢复倒计时
-const endTimeStamp = useStorage<number | null>("endTimeStamp", null);
+const isRepeating = ref(false);
 // 保存定时器引用，用于清除定时器
 let countdownTimer: ReturnType<typeof setInterval> | null = null;
 
-// 在组件挂载时检查是否有未完成的倒计时
-onMounted(() => {
-  checkAndRestoreCountdown();
+// 配置对象，使用响应式
+const config = ref({
+  pray: false,
+  prayTime: "08:00",
+  hotspring: false,
+  hotspringTime: "08:00",
 });
 
+// ========== 自动定时执行三条 window.postMessage 代码 ==========
+onMounted(() => {
+  // 加载配置
+  loadConfig();
+});
 
-// 检查并恢复倒计时
-const checkAndRestoreCountdown = () => {
-  // 检查是否有未完成的倒计时
-  if (endTimeStamp.value && initialSeconds.value) {
-    // 计算剩余时间
-    const now = Date.now();
-    const remainingMs = endTimeStamp.value - now;
-
-    if (remainingMs > 0) {
-      // 还有剩余时间，计算剩余秒数（向上取整，确保不会少倒计时）
-      const remainingSeconds = Math.ceil(remainingMs / 1000);
-      console.log(`恢复倒计时，剩余${remainingSeconds}秒`);
-
-      // 设置剩余时间
-      countdown.value = remainingSeconds;
-
-      // 开始倒计时
-      startCountdownTimer();
-    } else if (isRepeating.value) {
-      // 倒计时已结束但需要循环，重新开始
-      console.log("恢复循环倒计时，重新开始");
-      countdown.value = initialSeconds.value;
-      updateEndTimeStamp();
-      startCountdownTimer();
-    } else {
-      // 倒计时已结束，清除状态
-      clearStoredCountdown();
+// 加载配置
+const loadConfig = async () => {
+  try {
+    const result = await browser.storage.local.get("config");
+    if (result.config) {
+      config.value = { ...config.value, ...result.config };
     }
+  } catch (error) {
+    console.error("加载配置失败:", error);
   }
 };
 
-// 更新结束时间戳
-const updateEndTimeStamp = () => {
-  if (countdown.value !== null) {
-    // 设置结束时间戳为当前时间加上倒计时秒数
-    endTimeStamp.value = Date.now() + countdown.value * 1000;
-  } else {
-    endTimeStamp.value = null;
-  }
-};
+// 处理定时执行任务
+const handleScheduledAction = async (alarmName: string) => {
+  console.log(`执行定时任务: ${alarmName}`);
 
-// 清除存储的倒计时状态
-const clearStoredCountdown = () => {
-  countdown.value = null;
-  endTimeStamp.value = null;
+  try {
+    // 获取配置
+    const result = await browser.storage.local.get("config");
+    const currentConfig = result.config;
+
+    console.log("配置", currentConfig);
+
+    if (!currentConfig) {
+      console.log("未找到配置信息");
+      return;
+    }
+
+    // 根据 alarmName 执行对应的操作
+    if (alarmName.startsWith("pray_")) {
+      console.log("执行许愿操作");
+      // window.postMessage({ action: "pray" }, "*");
+      window.postMessage(
+        {
+          action: "pray",
+          params: [currentConfig.prayType === "金币"],
+        },
+        "*"
+      );
+    } else if (alarmName.startsWith("hotspring_")) {
+      console.log("执行泡温泉操作");
+      window.postMessage(
+        {
+          action: "hotspring",
+          params: [currentConfig.tea, currentConfig.friendUID],
+        },
+        "*"
+      );
+    }
+  } catch (error) {
+    console.error("执行定时任务失败:", error);
+  }
 };
 
 // 开始倒计时的方法
@@ -119,45 +151,37 @@ const startCountdown = (seconds: number, repeat = false) => {
   isRepeating.value = repeat;
   // 设置初始值
   countdown.value = seconds;
-
-  window.postMessage({ action: 'runDrone' }, '*');
-
-  // 更新结束时间戳
-  updateEndTimeStamp();
+  // 第一次运行
+  window.postMessage({ action: "runDrone" }, "*");
+  // 获取设置数据
+  loadConfig();
 
   // 先清除可能存在的定时器
   clearExistingTimer();
 
   // 开始倒计时
   startCountdownTimer();
-  
 };
 
 // 启动倒计时定时器
 const startCountdownTimer = () => {
   // 创建定时器
   countdownTimer = setInterval(() => {
-    if (countdown.value !== null && !isPaused.value) {
+    if (countdown.value !== null) {
       if (countdown.value > 0) {
         countdown.value--;
-        // 每次更新倒计时也更新结束时间戳，减少计时误差
-        if (countdown.value % 10 === 0) {
-          // 每10秒更新一次，减少写入次数
-          updateEndTimeStamp();
-        }
       } else {
         // 倒计时结束
         console.log("倒计时结束");
-        
+
         // 发送倒计时结束消息
         window.postMessage({ type: "countdownEnded" }, "*");
 
         // 如果设置了循环，则重新开始倒计时
         if (isRepeating.value && initialSeconds.value !== null) {
           console.log("重新开始倒计时");
-          window.postMessage({ action: 'runDrone' }, '*');
+          window.postMessage({ action: "runDrone" }, "*");
           countdown.value = initialSeconds.value;
-          updateEndTimeStamp();
         } else {
           // 否则停止倒计时
           stopCountdown();
@@ -180,29 +204,28 @@ const stopCountdown = () => {
   // 清除定时器
   clearExistingTimer();
 
-  // 清除存储的倒计时状态
-  clearStoredCountdown();
+  // 清除倒计时状态
+  countdown.value = null;
+  initialSeconds.value = null;
+  isRepeating.value = false;
 
   console.log("倒计时已停止");
-};
-
-// 暂停倒计时的方法
-const pauseCountdown = () => {
-  isPaused.value = !isPaused.value;
-  console.log(isPaused.value ? "倒计时已暂停" : "倒计时已恢复");
-  return { status: "success" };
 };
 
 // 检查倒计时状态的方法
 const checkStatus = () => {
   return {
     isRunning: countdown.value !== null && countdown.value > 0,
-    isPaused: isPaused.value
   };
 };
 
 // 导出方法，以便在外部调用
-defineExpose({ startCountdown, stopCountdown, pauseCountdown, checkStatus });
+defineExpose({
+  startCountdown,
+  stopCountdown,
+  checkStatus,
+  handleScheduledAction,
+});
 </script>
 
 <style>

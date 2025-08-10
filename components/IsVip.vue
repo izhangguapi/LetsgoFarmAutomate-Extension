@@ -108,6 +108,7 @@
 <script lang="ts" setup>
 import { AppInfo } from "@/utils/configStorage";
 import { ElMessageBox } from "element-plus";
+import { onMounted } from "vue";
 
 const prayOptions = ["金币", "经验"];
 const config = reactive({
@@ -117,30 +118,40 @@ const config = reactive({
   prayTime: "08:00",
   prayType: "金币",
   hotspring: false,
-  hotspringTime: "08:05",
+  hotspringTime: "08:00",
   friendUID: "",
   tea: false,
 });
-const handleChange = (value: number | undefined) => {
-  console.log(value);
-};
+
+// 初始化时从chrome.storage.local读取配置
+onMounted(() => {
+  if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get("config", (result) => {
+      if (result && result.config) {
+        Object.assign(config, result.config);
+      }
+    });
+  }
+});
+
 const saveConfig = () => {
-  // 保存配置到本地
+  // 保存配置到chrome.storage.local
+  if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+    chrome.storage.local.set({ config: { ...config } }, () => {
+      console.log("配置已保存:", config);
+      ElMessageBox.alert("设置保存成功", "提示", {
+        confirmButtonText: "确定",
+        type: "success",
+      });
+    });
+  } else {
+    // 兼容fallback
   localStorage.setItem("config", JSON.stringify(config));
-  console.log(
-    "许愿开关：" + config.pray,
-    "\n许愿时间：" + config.prayTime,
-    "\n自动类型：" + config.prayType,
-    "\n自动温泉：" + config.hotspring,
-    "\n温泉时间：" + config.hotspringTime,
-    "\n好友id：" + config.friendUID,
-    "\n喝茶开关：" + config.tea
-  );
-  // 提示
   ElMessageBox.alert("设置保存成功", "提示", {
     confirmButtonText: "确定",
     type: "success",
   });
+  }
 };
 </script>
 

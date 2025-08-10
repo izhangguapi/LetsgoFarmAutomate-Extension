@@ -1,6 +1,6 @@
 {
   "name": "letsgo-farm-auto-script",
-  "description": "Chrome扩展 - 星宝农场自动化脚本",
+  "description": "星宝农场自动化 - 浏览器扩展",
   "private": true,
   "version": "2025.6.7",
   "type": "module",
