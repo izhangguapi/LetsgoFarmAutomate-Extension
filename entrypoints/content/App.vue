@@ -63,7 +63,7 @@
 
 <script lang="ts" setup>
 // 获取赞助图片
-const imageUrl = browser.runtime.getURL("/assets/Collection.png");
+const imageUrl = browser.runtime.getURL("/assets/QRCode.png");
 // 控制Dialog是否可见
 const centerDialogVisible = ref(true);
 // 倒计时变量，不再使用useStorage存储
