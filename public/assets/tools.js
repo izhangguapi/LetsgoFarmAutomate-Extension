@@ -79,6 +79,15 @@ function initGameAutoHandlers() {
   // 需要监控的元素及其处理方式
   const handlers = [
     {
+      selector: "div.el-loading-mask is-fullscreen",
+      action: (element) => {
+        element.remove();
+        callWinForms("REFRESH");
+        console.log("检测游戏重连，已刷新页面");
+        callWinForms("检测游戏重连，已刷新页面");
+      },
+    },
+    {
       selector: "div.el-message-box__wrapper",
       action: (element) => {
         element.remove();
@@ -90,6 +99,21 @@ function initGameAutoHandlers() {
       action: (element) => {
         element.remove();
         console.log("检测到遮挡，已删除");
+      },
+    },
+    {
+      selector: "div.close-btn",
+      action: (element) => {
+        element.click();
+        console.log("检测到有元素遮挡，点击关闭");
+      },
+    },
+    {
+      // 关闭辅助屏
+      selector: ".g-pc-s-v-close",
+      action: (element) => {
+        element.click();
+        console.log("检测到有元素遮挡，点击关闭");
       },
     },
     {
@@ -110,8 +134,8 @@ function initGameAutoHandlers() {
     {
       selector: "#el-loading-text",
       action: () => {
-        callWinForms("检测游戏重连，执行自动刷新页面");
         callWinForms("REFRESH");
+        callWinForms("检测游戏重连，已刷新页面");
       },
     },
   ];

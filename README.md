@@ -40,6 +40,14 @@
 
 ## 更新日志
 
-#### 2025 年 8 月 9 日：
+#### 2025 年 08 月 23 日：
+
+1. 解决工具脚本注入不生效的问题
+
+2. 自动去除遮挡：
+
+![腾讯公益遮挡](https://pic1.imgdb.cn/item/68a9484058cb8da5c844acb3.png)
+
+#### 2025 年 08 月 09 日：
 
 1. 正式发布，等待 Google 和 Microsoft 审核，可前往 [Releases](https://github.com/izhangguapi/LetsgoFarmAutomate-Extension/releases) 下载压缩包后自行导入

@@ -60,17 +60,18 @@ export default defineContentScript({
     // 注入main.js脚本
     console.log(`等待${autoInjection.value}秒后注入主要脚本...`);
     setTimeout(async () => {
-      // 创建script元素
-      const script = document.createElement("script");
-      // 使用browser.runtime.getURL获取脚本路径
-      script.src = browser.runtime.getURL("/assets/main.js");
-      // 将脚本添加到页面
-      document.body.appendChild(script);
-      console.log("主要脚本已成功注入");
-      // 注入工具脚本
-      script.src = browser.runtime.getURL("/assets/tools.js");
-      document.body.appendChild(script);
-      console.log("工具脚本已成功注入");
+      const scriptPaths = [
+        "/assets/main.js",
+        "/assets/tools.js",
+      ];
+
+      scriptPaths.forEach((path) => {
+        const script = document.createElement("script");
+        // 使用类型断言
+        script.src = browser.runtime.getURL(path as any);
+        document.body.appendChild(script);
+        console.log(`脚本 ${path} 已成功注入`);
+      });
     }, autoInjection.value * 1000);
 
     // 监听来自popup的消息
